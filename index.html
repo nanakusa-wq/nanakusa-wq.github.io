@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>オセロゲーム</title>
+  <style>
+    body {
+      background-color: #2e7d32;
+      font-family: sans-serif;
+      text-align: center;
+      color: white;
+    }
+    canvas {
+      margin-top: 20px;
+      background-color: #388e3c;
+      border: 4px solid #1b5e20;
+    }
+    #status {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🟩 オセロゲーム</h1>
+  <canvas id="board" width="480" height="480"></canvas>
+  <div id="status"></div>
+
+  <script>
+    const canvas = document.getElementById("board");
+    const ctx = canvas.getContext("2d");
+    const size = 8;
+    const cell = 60;
+
+    const EMPTY = 0, BLACK = 1, WHITE = 2;
+    let board = Array.from({ length: size }, () => Array(size).fill(EMPTY));
+    board[3][3] = WHITE; board[4][4] = WHITE;
+    board[3][4] = BLACK; board[4][3] = BLACK;
+
+    let currentPlayer = BLACK;
+
+    const directions = [
+      [-1, -1], [0, -1], [1, -1],
+      [-1, 0],          [1, 0],
+      [-1, 1], [0, 1], [1, 1]
+    ];
+
+    function drawBoard() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          ctx.strokeStyle = "black";
+          ctx.strokeRect(x * cell, y * cell, cell, cell);
+          if (board[y][x] === BLACK) drawStone(x, y, "black");
+          else if (board[y][x] === WHITE) drawStone(x, y, "white");
+        }
+      }
+      updateStatus();
+    }
+
+    function drawStone(x, y, color) {
+      ctx.beginPath();
+      ctx.arc(x * cell + cell / 2, y * cell + cell / 2, cell / 2 - 5, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function updateStatus() {
+      const black = board.flat().filter(v => v === BLACK).length;
+      const white = board.flat().filter(v => v === WHITE).length;
+      document.getElementById("status").textContent = `黒(●): ${black}　白(○): ${white}　現在の手番: ${currentPlayer === BLACK ? '黒(●)' : '白(○)'}`;
+    }
+
+    function getFlippable(x, y, player) {
+      if (board[y][x] !== EMPTY) return [];
+      const opponent = 3 - player;
+      let result = [];
+
+      for (let [dx, dy] of directions) {
+        let nx = x + dx, ny = y + dy, line = [];
+        while (nx >= 0 && nx < size && ny >= 0 && ny < size) {
+          if (board[ny][nx] === opponent) {
+            line.push([nx, ny]);
+          } else if (board[ny][nx] === player) {
+            if (line.length) result.push(...line);
+            break;
+          } else break;
+          nx += dx;
+          ny += dy;
+        }
+      }
+      return result;
+    }
+
+    canvas.addEventListener("click", e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / cell);
+      const y = Math.floor((e.clientY - rect.top) / cell);
+      const flips = getFlippable(x, y, currentPlayer);
+      if (flips.length) {
+        board[y][x] = currentPlayer;
+        for (let [fx, fy] of flips) {
+          board[fy][fx] = currentPlayer;
+        }
+        currentPlayer = 3 - currentPlayer;
+        drawBoard();
+      }
+    });
+
+    drawBoard();
+  </script>
+</body>
+</html>
